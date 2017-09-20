@@ -457,7 +457,7 @@ def _exec_ipmitool(driver_info, command, check_exit_code=None):
                 LAST_CMD_TIME[driver_info['address']] = time.time()
 
 
-def _set_and_wait(task, power_action, driver_info, timeout=None):
+def _set_and_wait(task, power_action, driver_info, timeout=None, check_exit_code=None):
     """Helper function for performing an IPMI power action
 
     This method assumes the caller knows the current power state and does not
@@ -494,7 +494,7 @@ def _set_and_wait(task, power_action, driver_info, timeout=None):
     # retries.
     cmd = "power %s" % cmd_name
     try:
-        _exec_ipmitool(driver_info, cmd)
+        _exec_ipmitool(driver_info, cmd, check_exit_code=check_exit_code)
     except (exception.PasswordFileFailedToCreate,
             processutils.ProcessExecutionError) as e:
         LOG.warning("IPMI power action %(cmd)s failed for node %(node_id)s "
@@ -518,7 +518,7 @@ def _power_on(task, driver_info, timeout=None):
     return _set_and_wait(task, states.POWER_ON, driver_info, timeout=timeout)
 
 
-def _power_off(task, driver_info, timeout=None):
+def _power_off(task, driver_info, timeout=None, check_exit_code=None):
     """Turn the power OFF for this node.
 
     :param driver_info: the ipmitool parameters for accessing a node.
@@ -528,7 +528,7 @@ def _power_off(task, driver_info, timeout=None):
     :raises: IPMIFailure on an error from ipmitool (from _power_status call).
 
     """
-    return _set_and_wait(task, states.POWER_OFF, driver_info, timeout=timeout)
+    return _set_and_wait(task, states.POWER_OFF, driver_info, timeout=timeout, check_exit_code=check_exit_code)
 
 
 def _soft_power_off(task, driver_info, timeout=None):
@@ -833,7 +833,7 @@ class IPMIPower(base.PowerInterface):
 
         """
         driver_info = _parse_driver_info(task.node)
-        _power_off(task, driver_info, timeout=timeout)
+        _power_off(task, driver_info, timeout=timeout, check_exit_code=[0, 1])
         driver_utils.ensure_next_boot_device(task, driver_info)
         _power_on(task, driver_info, timeout=timeout)
 
